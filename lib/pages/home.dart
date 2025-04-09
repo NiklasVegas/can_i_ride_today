@@ -26,27 +26,42 @@ class _HomePageState extends State<HomePage> {
       final data = await service.fetchWeatherData(_controller.text);
       final temp =
           data['data_day']?['temperature_max']?[0]?.toString() ?? 'N/A';
+      final windSpeed =
+          data['data_day']?['windspeed_max']?[0]?.toString() ?? 'N/A';
+      final rain =
+          data['data_day']?['precipitation_probability']?[0]?.toString() ??
+          'N/A';
       setState(() {
-        _result = 'Maximale Temperatur: $temp °C';
+        log('setting state');
+        values[0].value = temp;
+        values[1].value = rain;
+        values[2].value = windSpeed;
+        _result =
+            'Maximale Temperatur: $temp °C'
+            '\nMaximale Windgeschwindigkeit: $windSpeed km/h'
+            '\nRegenwahrscheinlichkeit: $rain %';
       });
     } catch (e) {
+      log('catch block');
       setState(() {
         _result = 'Fehler: $e';
       });
     } finally {
+      log('finally block');
       setState(() {
         _isLoading = false;
       });
     }
   }
 
-  void _getValues() {
-    values = ValueModel.getValues();
+  @override
+  void initState() {
+    super.initState();
+    values = ValueModel.getValues(); // ← nur einmal beim Start!
   }
 
   @override
   Widget build(BuildContext context) {
-    _getValues();
     return Scaffold(
       appBar: appBar(),
       body: Column(
@@ -54,13 +69,7 @@ class _HomePageState extends State<HomePage> {
         children: [
           _searchField(),
           SizedBox(height: 100),
-          if (_isLoading)
-            CircularProgressIndicator()
-          else if (_result != null)
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Text(_result!, style: TextStyle(fontSize: 18)),
-            ),
+          if (_isLoading) CircularProgressIndicator(),
           _valuesSection(),
         ],
       ),
@@ -68,19 +77,19 @@ class _HomePageState extends State<HomePage> {
   }
 
   Column _valuesSection() {
+    for (var value in values) {
+      log('value: ${value.value}');
+    }
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 40),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Wetterdaten',
-              style: TextStyle(
-                color: Colors.black,
-                fontSize: 30,
-                fontWeight: FontWeight.w600,
-              ),
+        Align(
+          alignment: Alignment.center,
+          child: Text(
+            'Wetterdaten',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 30,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -88,46 +97,49 @@ class _HomePageState extends State<HomePage> {
         Container(
           height: 200,
           color: Colors.green,
-          child: ListView.separated(
-            itemCount: values.length,
-            scrollDirection: Axis.horizontal,
-            separatorBuilder: (context, index) => SizedBox(width: 20),
-            itemBuilder: (context, index) {
-              return Container(
-                width: 150,
-                decoration: BoxDecoration(
-                  color: values[index].boxColor.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 5, 20, 5),
+            child: ListView.separated(
+              itemCount: values.length,
+              scrollDirection: Axis.horizontal,
+              separatorBuilder: (context, index) => SizedBox(width: 20),
+              itemBuilder: (context, index) {
+                return Container(
+                  width: 400,
+                  decoration: BoxDecoration(
+                    color: values[index].boxColor.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          values[index].icon,
+                          size: 40,
+                          color: values[index].boxColor,
+                        ),
                       ),
-                      child: Icon(
-                        values[index].icon,
-                        size: 40,
-                        color: values[index].boxColor,
+                      Text(values[index].name),
+                      SizedBox(height: 10),
+                      Text(
+                        values[index].value,
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                    Text(values[index].name),
-                    SizedBox(height: 10),
-                    Text(
-                      values[index].value,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
+                    ],
+                  ),
+                );
+              },
+            ),
           ),
         ),
       ],
@@ -150,16 +162,14 @@ class _HomePageState extends State<HomePage> {
         decoration: InputDecoration(
           filled: true,
           hintText: 'Gib deine Stadt ein',
-          contentPadding: EdgeInsets.symmetric(vertical: 20),
+          contentPadding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
           hintStyle: TextStyle(color: Colors.black),
           fillColor: Colors.white,
-          prefixIcon: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Icon(Icons.search),
-          ),
+
           suffixIcon: IconButton(
             onPressed: () {
               _searchWeather();
+              log('searched weather'); // Handle search action')
             },
             icon: Icon(Icons.search),
           ),
