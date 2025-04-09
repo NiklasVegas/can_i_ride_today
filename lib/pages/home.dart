@@ -1,4 +1,5 @@
 import 'package:can_i_ride_today/models/value_model.dart';
+import 'package:can_i_ride_today/logic/weather_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:developer';
 
@@ -10,7 +11,35 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final _controller = TextEditingController();
+  bool _isLoading = false;
+  String? _result;
   List<ValueModel> values = [];
+
+  Future<void> _searchWeather() async {
+    setState(() {
+      _isLoading = true;
+      _result = null;
+    });
+    try {
+      final service = WeatherService();
+      final data = await service.fetchWeatherData(_controller.text);
+      final temp =
+          data['data_day']?['temperature_max']?[0]?.toString() ?? 'N/A';
+      setState(() {
+        _result = 'Maximale Temperatur: $temp °C';
+      });
+    } catch (e) {
+      setState(() {
+        _result = 'Fehler: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   void _getValues() {
     values = ValueModel.getValues();
   }
@@ -22,7 +51,18 @@ class _HomePageState extends State<HomePage> {
       appBar: appBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [_searchField(), SizedBox(height: 100), _valuesSection()],
+        children: [
+          _searchField(),
+          SizedBox(height: 100),
+          if (_isLoading)
+            CircularProgressIndicator()
+          else if (_result != null)
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Text(_result!, style: TextStyle(fontSize: 18)),
+            ),
+          _valuesSection(),
+        ],
       ),
     );
   }
@@ -117,27 +157,11 @@ class _HomePageState extends State<HomePage> {
             padding: const EdgeInsets.all(12),
             child: Icon(Icons.search),
           ),
-          suffixIcon: SizedBox(
-            width: 100,
-            child: IntrinsicHeight(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  VerticalDivider(
-                    color: Colors.black,
-                    indent: 10,
-                    endIndent: 10,
-                    width: 1,
-                    thickness: 1,
-                  ),
-
-                  Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Icon(Icons.tune),
-                  ),
-                ],
-              ),
-            ),
+          suffixIcon: IconButton(
+            onPressed: () {
+              _searchWeather();
+            },
+            icon: Icon(Icons.search),
           ),
         ),
       ),
