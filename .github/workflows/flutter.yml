@@ -3,10 +3,10 @@ name: Flutter CI
 on:
   push:
     branches:
-      - main # Run tests on pushes to the main branch
+      - main
   pull_request:
     branches:
-      - main # Run tests on pull requests to the main branch
+      - main
 
 jobs:
   build:
@@ -17,16 +17,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # Step 2: Set up Flutter
+      # Step 2: Cache Flutter SDK
+      - name: Cache Flutter SDK
+        uses: actions/cache@v3
+        with:
+          path: ~/.flutter
+          key: flutter-${{ runner.os }}-${{ hashFiles('pubspec.yaml') }}
+          restore-keys: |
+            flutter-${{ runner.os }}-
+
+      # Step 3: Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.29.2" # Use the stable version of Flutter
+          flutter-version: "3.29.2"
 
-      # Step 3: Install dependencies
+      # Step 4: Cache pub dependencies
+      - name: Cache pub dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.pub-cache
+          key: pub-cache-${{ runner.os }}-${{ hashFiles('pubspec.lock') }}
+          restore-keys: |
+            pub-cache-${{ runner.os }}-
+
+      # Step 5: Install dependencies
       - name: Install dependencies
         run: flutter pub get
 
-      # Step 4: Run tests
+      # Step 6: Run tests
       - name: Run tests
         run: flutter test
