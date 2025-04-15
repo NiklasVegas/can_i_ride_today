@@ -27,10 +27,10 @@ jobs:
             flutter-${{ runner.os }}-
 
       # Step 3: Set up Flutter
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: "3.29.2"
+      # - name: Set up Flutter
+      #   uses: subosito/flutter-action@v2
+      #   with:
+      #     flutter-version: "3.29.2"
 
       # Step 4: Cache pub dependencies
       - name: Cache pub dependencies
