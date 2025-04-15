@@ -24,35 +24,10 @@ enum CityNames {
 
   static final List<CityEntry> entries = UnmodifiableListView<CityEntry>(
     values.map<CityEntry>(
-      (CityNames city) => CityEntry(
-        value: city,
-        label: city.name,
-        // leadingIcon: Icon(Icons.location_city),
-      ),
+      (CityNames city) => CityEntry(value: city, label: city.name),
     ),
   );
 }
-
-// enum IconLabel {
-//   smile('Smile', Icons.sentiment_satisfied_outlined),
-//   cloud('Cloud', Icons.cloud_outlined),
-//   brush('Brush', Icons.brush_outlined),
-//   heart('Heart', Icons.favorite);
-
-//   const IconLabel(this.label, this.icon);
-//   final String label;
-//   final IconData icon;
-
-//   static final List<CityEntry> entries = UnmodifiableListView<CityEntry>(
-//     values.map<CityEntry>(
-//       (IconLabel icon) => CityEntry(
-//         value: icon,
-//         label: icon.label,
-//         leadingIcon: Icon(icon.icon),
-//       ),
-//     ),
-//   );
-// }
 
 class _HomePageState extends State<HomePage> {
   final _controller = TextEditingController();

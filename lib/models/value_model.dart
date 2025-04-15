@@ -19,7 +19,7 @@ class ValueModel {
     values.add(
       ValueModel(
         name: 'Temperatur',
-        value: '20°',
+        value: 'N/A',
         boxColor: Colors.blue,
         icon: Icons.thermostat,
       ),
@@ -27,7 +27,7 @@ class ValueModel {
     values.add(
       ValueModel(
         name: 'Regen',
-        value: '10%',
+        value: 'N/A',
         boxColor: Colors.orange,
         icon: Icons.water_drop,
       ),
@@ -35,7 +35,7 @@ class ValueModel {
     values.add(
       ValueModel(
         name: 'Windgeschwindigkeit',
-        value: '10 km/h',
+        value: 'N/A',
         boxColor: Colors.red,
         icon: Icons.wind_power,
       ),
