@@ -1,6 +1,7 @@
 import 'package:can_i_ride_today/models/value_model.dart';
 import 'package:can_i_ride_today/logic/weather_service.dart';
 import 'package:flutter/material.dart';
+import 'package:collection/collection.dart';
 import 'dart:developer';
 
 class HomePage extends StatefulWidget {
@@ -10,8 +11,53 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
+typedef CityEntry = DropdownMenuEntry<CityNames>;
+
+enum CityNames {
+  berlin('Berlin'),
+  hamburg('Hamburg'),
+  muenchen('München'),
+  koeln('Köln');
+
+  const CityNames(this.name);
+  final String name;
+
+  static final List<CityEntry> entries = UnmodifiableListView<CityEntry>(
+    values.map<CityEntry>(
+      (CityNames city) => CityEntry(
+        value: city,
+        label: city.name,
+        // leadingIcon: Icon(Icons.location_city),
+      ),
+    ),
+  );
+}
+
+// enum IconLabel {
+//   smile('Smile', Icons.sentiment_satisfied_outlined),
+//   cloud('Cloud', Icons.cloud_outlined),
+//   brush('Brush', Icons.brush_outlined),
+//   heart('Heart', Icons.favorite);
+
+//   const IconLabel(this.label, this.icon);
+//   final String label;
+//   final IconData icon;
+
+//   static final List<CityEntry> entries = UnmodifiableListView<CityEntry>(
+//     values.map<CityEntry>(
+//       (IconLabel icon) => CityEntry(
+//         value: icon,
+//         label: icon.label,
+//         leadingIcon: Icon(icon.icon),
+//       ),
+//     ),
+//   );
+// }
+
 class _HomePageState extends State<HomePage> {
   final _controller = TextEditingController();
+  final TextEditingController iconController = TextEditingController();
+  String? selectedCity;
   bool _isLoading = false;
   String? _result;
   List<ValueModel> values = [];
@@ -33,9 +79,9 @@ class _HomePageState extends State<HomePage> {
           'N/A';
       setState(() {
         log('setting state');
-        values[0].value = temp;
-        values[1].value = rain;
-        values[2].value = windSpeed;
+        values[0].value = temp + ' °C';
+        values[1].value = rain + ' %';
+        values[2].value = windSpeed + ' km/h';
         _result =
             'Maximale Temperatur: $temp °C'
             '\nMaximale Windgeschwindigkeit: $windSpeed km/h'
@@ -68,7 +114,7 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _searchField(),
-          SizedBox(height: 100),
+          SizedBox(height: 20),
           if (_isLoading) CircularProgressIndicator(),
           _valuesSection(),
         ],
@@ -105,7 +151,7 @@ class _HomePageState extends State<HomePage> {
               separatorBuilder: (context, index) => SizedBox(width: 20),
               itemBuilder: (context, index) {
                 return Container(
-                  width: 400,
+                  width: 200,
                   decoration: BoxDecoration(
                     color: values[index].boxColor.withOpacity(0.8),
                     borderRadius: BorderRadius.circular(20),
@@ -158,22 +204,22 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      child: TextField(
-        decoration: InputDecoration(
+      child: DropdownMenu<CityNames>(
+        controller: iconController,
+        enableFilter: true,
+        requestFocusOnTap: true,
+        label: const Text('Stadt'),
+        inputDecorationTheme: const InputDecorationTheme(
           filled: true,
-          hintText: 'Gib deine Stadt ein',
-          contentPadding: EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-          hintStyle: TextStyle(color: Colors.black),
-          fillColor: Colors.white,
-
-          suffixIcon: IconButton(
-            onPressed: () {
-              _searchWeather();
-              log('searched weather'); // Handle search action')
-            },
-            icon: Icon(Icons.search),
-          ),
+          contentPadding: EdgeInsets.symmetric(vertical: 5.0),
         ),
+        onSelected: (CityNames? city) {
+          setState(() {
+            _searchWeather();
+            selectedCity = city?.name;
+          });
+        },
+        dropdownMenuEntries: CityNames.entries,
       ),
     );
   }
