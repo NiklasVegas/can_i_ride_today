@@ -1,7 +1,8 @@
 import 'package:can_i_ride_today/models/value_model.dart';
 import 'package:can_i_ride_today/logic/weather_service.dart';
 import 'package:flutter/material.dart';
-import 'package:collection/collection.dart';
+//import 'package:collection/collection.dart';
+import 'package:country_state_city/country_state_city.dart' as csc;
 import 'dart:developer';
 
 class HomePage extends StatefulWidget {
@@ -11,40 +12,20 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-typedef CityEntry = DropdownMenuEntry<CityNames>;
-
-enum CityNames {
-  berlin('Berlin'),
-  hamburg('Hamburg'),
-  muenchen('München'),
-  koeln('Köln');
-
-  const CityNames(this.name);
-  final String name;
-
-  static final List<CityEntry> entries = UnmodifiableListView<CityEntry>(
-    values.map<CityEntry>(
-      (CityNames city) => CityEntry(value: city, label: city.name),
-    ),
-  );
-}
-
 class _HomePageState extends State<HomePage> {
   final _controller = TextEditingController();
   final TextEditingController iconController = TextEditingController();
   String? selectedCity;
   bool _isLoading = false;
-  String? _result;
   List<ValueModel> values = [];
 
-  Future<void> _searchWeather() async {
+  Future<void> _searchWeather(csc.City city) async {
     setState(() {
       _isLoading = true;
-      _result = null;
     });
     try {
       final service = WeatherService();
-      final data = await service.fetchWeatherData(_controller.text);
+      final data = await service.fetchWeatherData(city);
       final temp =
           data['data_day']?['temperature_max']?[0]?.toString() ?? 'N/A';
       final windSpeed =
@@ -54,21 +35,15 @@ class _HomePageState extends State<HomePage> {
           'N/A';
       setState(() {
         log('setting state');
-        values[0].value = temp + ' °C';
-        values[1].value = rain + ' %';
-        values[2].value = windSpeed + ' km/h';
-        _result =
-            'Maximale Temperatur: $temp °C'
-            '\nMaximale Windgeschwindigkeit: $windSpeed km/h'
-            '\nRegenwahrscheinlichkeit: $rain %';
+        values[0].value = '$temp °C';
+        values[1].value = '$rain %';
+        values[2].value = '$windSpeed km/h';
       });
     } catch (e) {
-      log('catch block');
-      setState(() {
-        _result = 'Fehler: $e';
-      });
+      log('_searchWeather catch block');
+      setState(() {});
     } finally {
-      log('finally block');
+      log('_searchWeather finally block');
       setState(() {
         _isLoading = false;
       });
@@ -173,28 +148,61 @@ class _HomePageState extends State<HomePage> {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(),
+            color: Colors.grey.withOpacity(0.5),
             blurRadius: 40,
             spreadRadius: 0.0,
           ),
         ],
       ),
-      child: DropdownMenu<CityNames>(
-        controller: iconController,
-        enableFilter: true,
-        requestFocusOnTap: true,
-        label: const Text('Stadt'),
-        inputDecorationTheme: const InputDecorationTheme(
-          filled: true,
-          contentPadding: EdgeInsets.symmetric(vertical: 5.0),
-        ),
-        onSelected: (CityNames? city) {
-          setState(() {
-            _searchWeather();
-            selectedCity = city?.name;
-          });
+      child: FutureBuilder<List<csc.City>>(
+        future: csc.getCountryCities('DE'),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Text('Fehler: ${snapshot.error}');
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Text('Keine Städte gefunden');
+          } else {
+            final cities = snapshot.data!;
+            return Autocomplete<csc.City>(
+              optionsBuilder: (TextEditingValue textEditingValue) {
+                if (textEditingValue.text == '') {
+                  return const Iterable<csc.City>.empty();
+                }
+                return cities.where(
+                  (c) => c.name.toLowerCase().startsWith(
+                    textEditingValue.text.toLowerCase(),
+                  ),
+                );
+              },
+              displayStringForOption: (csc.City city) => city.name,
+              onSelected: (csc.City city) {
+                setState(() {
+                  selectedCity = city.name;
+                  _controller.text = city.name;
+                  _searchWeather(city);
+                });
+              },
+              fieldViewBuilder: (
+                context,
+                controller,
+                focusNode,
+                onFieldSubmitted,
+              ) {
+                return TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  decoration: const InputDecoration(
+                    labelText: 'Stadt',
+                    filled: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 5.0),
+                  ),
+                );
+              },
+            );
+          }
         },
-        dropdownMenuEntries: CityNames.entries,
       ),
     );
   }

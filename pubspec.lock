@@ -66,7 +66,7 @@ packages:
     source: hosted
     version: "1.1.2"
   collection:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: collection
       sha256: "2f5709ae4d3d59dd8f7cd309b4e023046b57d8a6c82130785d2b0e5868084e76"
@@ -81,6 +81,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
+  country_state_city:
+    dependency: "direct main"
+    description:
+      name: country_state_city
+      sha256: "400bf4f455503021d98a1f21eeec41c0aa0d7b2529ea0b07f6799ed3750513c3"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.1.6"
   coverage:
     dependency: transitive
     description:
