@@ -24,8 +24,10 @@ class _HomePageState extends State<HomePage> {
       _isLoading = true;
     });
     try {
+      String? lat = city.latitude;
+      String? lon = city.longitude;
       final service = WeatherService();
-      final data = await service.fetchWeatherData(city);
+      final data = await service.fetchWeatherData(lat, lon);
       final temp =
           data['data_day']?['temperature_max']?[0]?.toString() ?? 'N/A';
       final windSpeed =
@@ -53,96 +55,88 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    values = ValueModel.getValues(); // ← nur einmal beim Start!
+    values = ValueModel.getValues();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: appBar(),
+      appBar: _buildAppBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _searchField(),
+          _buildSearchField(),
           SizedBox(height: 20),
           if (_isLoading) CircularProgressIndicator(),
-          _valuesSection(),
+          _buildValuesSection(),
         ],
       ),
     );
   }
 
-  Column _valuesSection() {
-    for (var value in values) {
-      log('value: ${value.value}');
-    }
-    return Column(
+  Widget _buildWeatherHeader() => Align(
+    alignment: Alignment.center,
+    child: Text(
+      'Wetterdaten',
+      style: TextStyle(
+        color: Colors.black,
+        fontSize: 30,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+
+  Widget _buildWeatherCard(ValueModel value) => Container(
+    width: 200,
+    decoration: BoxDecoration(
+      color: value.boxColor.withOpacity(0.8),
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Align(
-          alignment: Alignment.center,
-          child: Text(
-            'Wetterdaten',
-            style: TextStyle(
-              color: Colors.black,
-              fontSize: 30,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        SizedBox(height: 20),
         Container(
-          height: 200,
-          color: Colors.green,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 5, 20, 5),
-            child: ListView.separated(
-              itemCount: values.length,
-              scrollDirection: Axis.horizontal,
-              separatorBuilder: (context, index) => SizedBox(width: 20),
-              itemBuilder: (context, index) {
-                return Container(
-                  width: 200,
-                  decoration: BoxDecoration(
-                    color: values[index].boxColor.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          values[index].icon,
-                          size: 40,
-                          color: values[index].boxColor,
-                        ),
-                      ),
-                      Text(values[index].name),
-                      SizedBox(height: 10),
-                      Text(
-                        values[index].value,
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
           ),
+          child: Icon(value.icon, size: 40, color: value.boxColor),
+        ),
+        Text(value.name),
+        SizedBox(height: 10),
+        Text(
+          value.value,
+          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
         ),
       ],
-    );
-  }
+    ),
+  );
 
-  Container _searchField() {
+  Widget _buildWeatherListView() => Container(
+    height: 200,
+    color: Colors.green,
+    child: Padding(
+      padding: const EdgeInsets.fromLTRB(20, 5, 20, 5),
+      child: ListView.separated(
+        itemCount: values.length,
+        scrollDirection: Axis.horizontal,
+        separatorBuilder: (context, index) => SizedBox(width: 20),
+        itemBuilder: (context, index) => _buildWeatherCard(values[index]),
+      ),
+    ),
+  );
+
+  Column _buildValuesSection() => Column(
+    children: [
+      _buildWeatherHeader(),
+      SizedBox(height: 20),
+      _buildWeatherListView(),
+    ],
+  );
+
+  Container _buildSearchField() {
     return Container(
       margin: EdgeInsets.only(top: 40, left: 20, right: 20),
       decoration: BoxDecoration(
@@ -154,66 +148,72 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      child: FutureBuilder<List<csc.City>>(
-        future: csc.getCountryCities('DE'),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Text('Fehler: ${snapshot.error}');
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Text('Keine Städte gefunden');
-          } else {
-            final cities = snapshot.data!;
-            return Autocomplete<csc.City>(
-              optionsBuilder: (TextEditingValue textEditingValue) {
-                if (textEditingValue.text == '') {
-                  return const Iterable<csc.City>.empty();
-                }
-                return cities.where(
-                  (c) => c.name.toLowerCase().startsWith(
-                    textEditingValue.text.toLowerCase(),
-                  ),
-                );
-              },
-              displayStringForOption: (csc.City city) => city.name,
-              onSelected: (csc.City city) {
-                setState(() {
-                  selectedCity = city.name;
-                  _controller.text = city.name;
-                  _searchWeather(city);
-                });
-              },
-              fieldViewBuilder: (
-                context,
-                controller,
-                focusNode,
-                onFieldSubmitted,
-              ) {
-                return TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  decoration: const InputDecoration(
-                    labelText: 'Stadt',
-                    filled: true,
-                    contentPadding: EdgeInsets.symmetric(vertical: 5.0),
-                  ),
-                );
-              },
-            );
-          }
-        },
+      child: _buildCityAutocomplete(),
+    );
+  }
+
+  Widget _buildCityAutocomplete() {
+    return FutureBuilder<List<csc.City>>(
+      future: csc.getCountryCities('DE'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Text('Fehler: ${snapshot.error}');
+        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Text('Keine Städte gefunden');
+        } else {
+          final cities = snapshot.data!;
+          return Autocomplete<csc.City>(
+            optionsBuilder: (TextEditingValue textEditingValue) {
+              if (textEditingValue.text == '') {
+                return const Iterable<csc.City>.empty();
+              }
+              return cities.where(
+                (c) => c.name.toLowerCase().startsWith(
+                  textEditingValue.text.toLowerCase(),
+                ),
+              );
+            },
+            displayStringForOption: (csc.City city) => city.name,
+            onSelected: (csc.City city) {
+              setState(() {
+                selectedCity = city.name;
+                _controller.text = city.name;
+                _searchWeather(city);
+              });
+            },
+            fieldViewBuilder: _buildCityFieldView,
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildCityFieldView(
+    BuildContext context,
+    TextEditingController controller,
+    FocusNode focusNode,
+    VoidCallback onFieldSubmitted,
+  ) {
+    return TextField(
+      controller: controller,
+      focusNode: focusNode,
+      decoration: const InputDecoration(
+        labelText: 'Stadt',
+        filled: true,
+        contentPadding: EdgeInsets.symmetric(vertical: 5.0),
       ),
     );
   }
 
-  AppBar appBar() {
+  AppBar _buildAppBar() {
     return AppBar(
       title: const Text('Can I Ride Today?'),
       centerTitle: true,
       leading: GestureDetector(
         onTap: () {
-          log('pressedBack'); // Handle back action
+          log('pressedBack');
         },
         child: Container(
           margin: EdgeInsets.all(10),
@@ -224,7 +224,7 @@ class _HomePageState extends State<HomePage> {
       actions: [
         GestureDetector(
           onTap: () {
-            log('pressedMenu'); // Besseres Logging
+            log('pressedMenu');
           },
           child: Container(
             margin: EdgeInsets.all(10),
