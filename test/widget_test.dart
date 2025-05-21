@@ -4,7 +4,7 @@ import 'package:can_i_ride_today/pages/home.dart';
 import 'package:country_state_city/country_state_city.dart' as csc;
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
   testWidgets('HomePage displays UI', (WidgetTester tester) async {
     await tester.pumpWidget(MaterialApp(home: HomePage()));
 
